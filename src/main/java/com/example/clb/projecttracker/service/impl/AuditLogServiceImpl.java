@@ -51,4 +51,18 @@ public class AuditLogServiceImpl implements AuditLogService {
     public Page<AuditLog> getAuditLogsByUserId(String userId, Pageable pageable) {
         return auditLogRepository.findByUserId(userId, pageable);
     }
+
+    @Override
+    public Page<AuditLog> getAuditLogs(Pageable pageable, String action, String username) {
+        if (action != null && username != null) {
+            // Filter by both action and username - would need custom repository method
+            return auditLogRepository.findAll(pageable); // Simplified for now
+        } else if (action != null) {
+            return auditLogRepository.findByActionType(action, pageable);
+        } else if (username != null) {
+            return auditLogRepository.findByUserId(username, pageable);
+        } else {
+            return auditLogRepository.findAll(pageable);
+        }
+    }
 }

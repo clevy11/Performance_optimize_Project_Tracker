@@ -52,6 +52,15 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "projectSummary", key = "#projectId")
+    public ProjectDto getProjectSummary(Long projectId) {
+        // For now, project summary is the same as full project details
+        // In the future, this could be enhanced to include task counts, progress, etc.
+        return getProjectById(projectId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "projectsPage") // Key will be generated based on Pageable
     public Page<ProjectDto> getAllProjects(Pageable pageable) {
         Page<Project> projects = projectRepository.findAll(pageable);

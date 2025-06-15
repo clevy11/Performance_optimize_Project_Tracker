@@ -90,11 +90,12 @@ All API endpoints are documented using Swagger/OpenAPI.
 
 ## Database Schema (ERD)
 
-Below is the Entity Relationship Diagram for the relational database (PostgreSQL).
+![img_2.png](img_2.png)
 
-![img.png](img.png)
 
-*Example `dbdiagram.io` code was provided previously to generate this.* 
+
+## Sequence diagram:
+![img_3.png](img_3.png)
 
 ## High-Level System Architecture Diagram
 

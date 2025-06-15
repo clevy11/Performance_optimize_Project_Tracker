@@ -25,11 +25,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
     @Size(max = 50)
     private String username;
 
-    @NotBlank
     @Size(max = 120)
     @Email
     private String email;
@@ -43,6 +41,12 @@ public class User {
     private AuthProvider provider;
 
     private String providerId;
+
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    @Column(nullable = false)
+    private Boolean approved = true; // OAuth2 users start as false
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",

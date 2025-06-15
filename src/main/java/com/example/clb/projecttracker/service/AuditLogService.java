@@ -14,4 +14,6 @@ public interface AuditLogService {
     Page<AuditLog> getAuditLogsByEntityType(String entityType, Pageable pageable);
     Page<AuditLog> getAuditLogsByEntityId(String entityType, Long entityId, Pageable pageable);
     Page<AuditLog> getAuditLogsByUserId(String userId, Pageable pageable);
+    
+    Page<AuditLog> getAuditLogs(Pageable pageable, String action, String username);
 }

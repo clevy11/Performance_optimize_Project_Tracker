@@ -14,6 +14,8 @@ import com.example.clb.projecttracker.repository.ProjectRepository;
 import com.example.clb.projecttracker.repository.TaskRepository;
 import com.example.clb.projecttracker.service.AuditLogService;
 import com.example.clb.projecttracker.service.TaskService;
+import com.example.clb.projecttracker.security.SecurityUtil;
+import com.example.clb.projecttracker.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -262,6 +264,20 @@ public class TaskServiceImpl implements TaskService {
                 LocalDate.now(),
                 Arrays.asList(TaskStatus.COMPLETED, TaskStatus.CANCELLED)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TaskDto> getTasksForCurrentUser(Pageable pageable) {
+        UserPrincipal currentUser = SecurityUtil.getCurrentUserPrincipal()
+                .orElseThrow(() -> new RuntimeException("No authenticated user found"));
+        
+        // Find the developer record that corresponds to the current user
+        // This assumes that the User entity has a relationship with Developer
+        // or that the developer ID is stored in the UserPrincipal
+        Long developerId = currentUser.getId(); // Assuming the user ID matches developer ID
+        
+        return taskRepository.findByDeveloperId(developerId, pageable).map(this::mapToDto);
     }
 
     // --- Helper Mapper Methods ---

@@ -1,0 +1,8 @@
+swagger-ui:
+  validatorUrl: ""
+  docExpansion: none
+  operationsSorter: method
+  tagsSorter: alpha
+  displayRequestDuration: true
+  filter: true
+  tryItOutEnabled: true

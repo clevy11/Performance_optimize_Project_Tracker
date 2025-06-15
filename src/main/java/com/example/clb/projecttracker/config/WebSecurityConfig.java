@@ -7,6 +7,7 @@ import com.example.clb.projecttracker.security.oauth2.HttpCookieOAuth2Authorizat
 import com.example.clb.projecttracker.security.oauth2.OAuth2AuthenticationFailureHandler;
 import com.example.clb.projecttracker.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import com.example.clb.projecttracker.security.services.UserDetailsServiceImpl;
+import com.example.clb.projecttracker.security.RequestLoggingFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,6 +54,9 @@ public class WebSecurityConfig {
     @Autowired
     private OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
+    @Autowired
+    private RequestLoggingFilter requestLoggingFilter;
+
     @Bean
     public HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository() {
         return new HttpCookieOAuth2AuthorizationRequestRepository();
@@ -81,12 +86,28 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers("/favicon.ico");
+    }
+
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Enable CORS and disable CSRF
+        // Enable CORS and disable CSRF for stateless API
+        http.addFilterBefore(requestLoggingFilter, org.springframework.security.web.access.channel.ChannelProcessingFilter.class);
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             
-            // Set session management to stateless
+            // Configure security headers
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.deny()) // Prevent clickjacking
+                .contentTypeOptions(contentTypeOptions -> {}) // Prevent MIME sniffing
+                .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true)
+                )
+            )
+            
+            // Set session management to STATELESS
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
@@ -103,7 +124,7 @@ public class WebSecurityConfig {
                     .authorizationRequestRepository(cookieAuthorizationRequestRepository())
                 )
                 .redirectionEndpoint(redirection -> redirection
-                    .baseUri("/login/oauth2/code/*")
+                    .baseUri("/oauth2/callback/*")
                 )
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(customOAuth2UserService)
@@ -118,7 +139,6 @@ public class WebSecurityConfig {
                 .requestMatchers(
                     "/",
                     "/error",
-                    "/favicon.ico",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
@@ -128,38 +148,13 @@ public class WebSecurityConfig {
                     "/v3/api-docs/swagger-config",
                     "/actuator/health",
                     "/api/auth/**",
-                    "/api/test/public",
-                    "/api/test/oauth2/public",
-                    "/oauth2/**"
+                    "/auth/**", // Allow access to the Google login initiation URL
+                    "/api/test/public"
                 ).permitAll()
-                
-                // OAuth2 login endpoints
-                .requestMatchers(
-                    "/login/oauth2/**",
-                    "/oauth2/authorization/**",
-                    "/oauth2/callback/**"
-                ).permitAll()
-                
-                // Role-based access control
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                
-                // Project endpoints
-                .requestMatchers(HttpMethod.GET, "/api/projects/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/projects").hasAnyRole("ADMIN", "MANAGER")
-                .requestMatchers(HttpMethod.PUT, "/api/projects/**").hasAnyRole("ADMIN", "MANAGER")
-                .requestMatchers(HttpMethod.DELETE, "/api/projects/**").hasRole("ADMIN")
-                
-                // Task endpoints
-                .requestMatchers(HttpMethod.GET, "/api/tasks/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/tasks").hasAnyRole("ADMIN", "MANAGER")
-                .requestMatchers(HttpMethod.PUT, "/api/tasks/**").authenticated()
-                
-                // All other requests need to be authenticated
+                // Protected endpoints
                 .anyRequest().authenticated()
-            );
-
-        // Add JWT token filter
-        http.authenticationProvider(authenticationProvider())
+            )
+            // Add authentication filter
             .addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

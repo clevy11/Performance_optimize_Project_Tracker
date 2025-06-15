@@ -9,14 +9,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -29,29 +30,50 @@ public class JwtUtils {
     private static final String AUTH_HEADER = "Authorization";
     private static final String TOKEN_PREFIX = "Bearer ";
 
-    @Value("${app.jwtSecret}")
+    @Value("${app.auth.tokenSecret}")
     private String jwtSecret;
 
-    @Value("${app.jwtExpirationMs:86400000}")
+    @Value("${app.auth.tokenExpirationMsec}")
     private int jwtExpirationMs;
-    
+
+    @Value("${app.auth.refreshTokenExpirationMsec}")
+    private int refreshTokenExpirationMs;
+
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     public String generateJwtToken(Authentication authentication) {
-        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-        
-        // Get user roles
-        List<String> roles = userPrincipal.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .collect(Collectors.toList());
+        String username;
+        List<String> roles = new ArrayList<>();
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserDetails userDetails) {
+            // Handle regular UserDetails
+            username = userDetails.getUsername();
+            roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
+        } else if (principal instanceof OAuth2User oauth2User) {
+            // Handle OAuth2 user
+            username = oauth2User.getName();
+            // For OAuth2 users, you might want to add a default role or get it from OAuth2 attributes
+            roles = oauth2User.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
+            if (roles.isEmpty()) {
+                // Add default role for OAuth2 users if needed
+                roles.add("ROLE_USER");
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported principal type: " + principal.getClass().getName());
+        }
 
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
+                .setSubject(username)
                 .setIssuer(TOKEN_ISSUER)
                 .setAudience(TOKEN_AUDIENCE)
                 .setIssuedAt(now)

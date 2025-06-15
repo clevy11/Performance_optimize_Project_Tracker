@@ -47,5 +47,6 @@ public interface TaskService {
 
     List<Task> findOverdueTasksForNotification();
 
+    Page<TaskDto> getTasksForCurrentUser(Pageable pageable);
 
 }

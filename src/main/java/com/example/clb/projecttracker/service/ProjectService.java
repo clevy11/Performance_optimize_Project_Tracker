@@ -18,4 +18,6 @@ public interface ProjectService {
     ProjectDto updateProject(Long projectId, ProjectRequestDto projectRequestDto);
 
     void deleteProject(Long projectId);
+
+    ProjectDto getProjectSummary(Long projectId);
 }
