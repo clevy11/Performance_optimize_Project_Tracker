@@ -2,6 +2,7 @@ package com.example.clb.projecttracker.controller;
 
 import com.example.clb.projecttracker.dto.ProjectDto;
 import com.example.clb.projecttracker.dto.ProjectRequestDto;
+import com.example.clb.projecttracker.dto.ProjectSummaryDto;
 import com.example.clb.projecttracker.service.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -47,9 +49,9 @@ public class ProjectController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get project summary", 
                description = "Retrieves a project summary. Accessible to all authenticated users including contractors.")
-    public ResponseEntity<ProjectDto> getProjectSummary(@PathVariable Long projectId) {
-        ProjectDto projectDto = projectService.getProjectSummary(projectId);
-        return ResponseEntity.ok(projectDto);
+    public ResponseEntity<ProjectSummaryDto> getProjectSummary(@PathVariable Long projectId) {
+        ProjectSummaryDto summaryDto = projectService.getProjectSummary(projectId);
+        return ResponseEntity.ok(summaryDto);
     }
 
     @GetMapping
@@ -59,6 +61,26 @@ public class ProjectController {
     public ResponseEntity<Page<ProjectDto>> getAllProjects(
             @PageableDefault(size = 20, sort = "name,asc") Pageable pageable) {
         Page<ProjectDto> projects = projectService.getAllProjects(pageable);
+        return ResponseEntity.ok(projects);
+    }
+    
+    @GetMapping("/summaries")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get all project summaries", 
+               description = "Retrieves all project summaries with pagination. More efficient than loading complete projects.")
+    public ResponseEntity<Page<ProjectSummaryDto>> getAllProjectSummaries(
+            @PageableDefault(size = 20, sort = "name,asc") Pageable pageable) {
+        Page<ProjectSummaryDto> summaries = projectService.getAllProjectSummaries(pageable);
+        return ResponseEntity.ok(summaries);
+    }
+    
+    @GetMapping("/recent")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get recent projects", 
+               description = "Retrieves a list of recent projects, limited by count parameter.")
+    public ResponseEntity<List<ProjectSummaryDto>> getRecentProjects(
+            @RequestParam(defaultValue = "5") int count) {
+        List<ProjectSummaryDto> projects = projectService.getRecentProjects(count);
         return ResponseEntity.ok(projects);
     }
 

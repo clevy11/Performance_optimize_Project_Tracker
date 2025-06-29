@@ -3,6 +3,7 @@ package com.example.clb.projecttracker.controller;
 import com.example.clb.projecttracker.dto.TaskDto;
 import com.example.clb.projecttracker.dto.TaskRequestDto;
 import com.example.clb.projecttracker.dto.TaskStatusCountDto;
+import com.example.clb.projecttracker.dto.TaskSummaryDto;
 import com.example.clb.projecttracker.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -161,5 +162,37 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long taskId) {
         taskService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/summaries")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    @Operation(summary = "Get all task summaries", 
+               description = "Retrieves all task summaries with pagination. More efficient for lists. Only accessible by ADMIN or MANAGER roles.")
+    public ResponseEntity<Page<TaskSummaryDto>> getAllTaskSummaries(
+            @PageableDefault(size = 20, sort = "dueDate") Pageable pageable) {
+        Page<TaskSummaryDto> tasks = taskService.getAllTaskSummaries(pageable);
+        return ResponseEntity.ok(tasks);
+    }
+
+    @GetMapping("/project/{projectId}/summaries")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get task summaries by project ID", 
+               description = "Retrieves lightweight task summaries for a specific project. Better performance for listings.")
+    public ResponseEntity<Page<TaskSummaryDto>> getTaskSummariesByProjectId(
+            @PathVariable Long projectId,
+            @PageableDefault(size = 20, sort = "dueDate") Pageable pageable) {
+        Page<TaskSummaryDto> tasks = taskService.getTaskSummariesByProjectId(projectId, pageable);
+        return ResponseEntity.ok(tasks);
+    }
+
+    @GetMapping("/developer/{developerId}/summaries")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER') or (hasRole('DEVELOPER') and #developerId == authentication.principal.id)")
+    @Operation(summary = "Get task summaries by developer ID", 
+               description = "Retrieves lightweight task summaries for a specific developer. Better performance for listings.")
+    public ResponseEntity<Page<TaskSummaryDto>> getTaskSummariesByDeveloperId(
+            @PathVariable Long developerId,
+            @PageableDefault(size = 20, sort = "dueDate") Pageable pageable) {
+        Page<TaskSummaryDto> tasks = taskService.getTaskSummariesByDeveloperId(developerId, pageable);
+        return ResponseEntity.ok(tasks);
     }
 }
