@@ -4,7 +4,9 @@ import com.example.clb.projecttracker.document.enums.ActionType;
 import com.example.clb.projecttracker.dto.TaskDto;
 import com.example.clb.projecttracker.dto.TaskRequestDto;
 import com.example.clb.projecttracker.dto.TaskStatusCountDto;
+import com.example.clb.projecttracker.dto.TaskSummaryDto;
 import com.example.clb.projecttracker.exception.ResourceNotFoundException;
+import com.example.clb.projecttracker.mapper.TaskMapper;
 import com.example.clb.projecttracker.model.Developer;
 import com.example.clb.projecttracker.model.Project;
 import com.example.clb.projecttracker.model.Task;
@@ -16,7 +18,10 @@ import com.example.clb.projecttracker.service.AuditLogService;
 import com.example.clb.projecttracker.service.TaskService;
 import com.example.clb.projecttracker.security.SecurityUtil;
 import com.example.clb.projecttracker.security.UserPrincipal;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -33,12 +38,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
     private final DeveloperRepository developerRepository;
     private final AuditLogService auditLogService;
+    private final TaskMapper taskMapper;
+    private final MeterRegistry meterRegistry;
 
     @Override
     @Transactional
@@ -278,6 +286,57 @@ public class TaskServiceImpl implements TaskService {
         Long developerId = currentUser.getId(); // Assuming the user ID matches developer ID
         
         return taskRepository.findByDeveloperId(developerId, pageable).map(this::mapToDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable("taskSummariesPage")
+    public Page<TaskSummaryDto> getAllTaskSummaries(Pageable pageable) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            log.debug("Getting all task summaries with pagination: {}", pageable);
+            Page<Task> tasks = taskRepository.findAll(pageable);
+            return tasks.map(taskMapper::toSummaryDto);
+        } finally {
+            sample.stop(meterRegistry.timer("service.task.getAllSummaries"));
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "taskSummariesByProjectPages", key = "#projectId")
+    public Page<TaskSummaryDto> getTaskSummariesByProjectId(Long projectId, Pageable pageable) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            log.debug("Getting task summaries for project ID {}: {}", projectId, pageable);
+            if (!projectRepository.existsById(projectId)) {
+                throw new ResourceNotFoundException("Project", "id", projectId);
+            }
+            Page<Task> tasks = taskRepository.findByProjectId(projectId, pageable);
+            return tasks.map(taskMapper::toSummaryDto);
+        } finally {
+            sample.stop(meterRegistry.timer("service.task.getSummariesByProjectId"));
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "taskSummariesByDeveloperPages", key = "#developerId")
+    public Page<TaskSummaryDto> getTaskSummariesByDeveloperId(Long developerId, Pageable pageable) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            log.debug("Getting task summaries for developer ID {}: {}", developerId, pageable);
+            if (!developerRepository.existsById(developerId)) {
+                throw new ResourceNotFoundException("Developer", "id", developerId);
+            }
+            Page<Task> tasks = taskRepository.findByDeveloperId(developerId, pageable);
+            return tasks.map(taskMapper::toSummaryDto);
+        } finally {
+            sample.stop(meterRegistry.timer("service.task.getSummariesByDeveloperId"));
+        }
     }
 
     // --- Helper Mapper Methods ---

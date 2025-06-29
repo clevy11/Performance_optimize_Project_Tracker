@@ -3,6 +3,7 @@ package com.example.clb.projecttracker.service;
 import com.example.clb.projecttracker.dto.TaskDto;
 import com.example.clb.projecttracker.dto.TaskRequestDto;
 import com.example.clb.projecttracker.dto.TaskStatusCountDto;
+import com.example.clb.projecttracker.dto.TaskSummaryDto;
 import com.example.clb.projecttracker.model.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,5 +49,28 @@ public interface TaskService {
     List<Task> findOverdueTasksForNotification();
 
     Page<TaskDto> getTasksForCurrentUser(Pageable pageable);
+    
+    /**
+     * Retrieves all tasks as lightweight summary DTOs for better performance
+     * @param pageable pagination information
+     * @return Page of TaskSummaryDto
+     */
+    Page<TaskSummaryDto> getAllTaskSummaries(Pageable pageable);
+    
+    /**
+     * Retrieves tasks for a project as lightweight summary DTOs
+     * @param projectId project identifier
+     * @param pageable pagination information
+     * @return Page of TaskSummaryDto
+     */
+    Page<TaskSummaryDto> getTaskSummariesByProjectId(Long projectId, Pageable pageable);
+    
+    /**
+     * Retrieves tasks for a developer as lightweight summary DTOs
+     * @param developerId developer identifier
+     * @param pageable pagination information
+     * @return Page of TaskSummaryDto
+     */
+    Page<TaskSummaryDto> getTaskSummariesByDeveloperId(Long developerId, Pageable pageable);
 
 }

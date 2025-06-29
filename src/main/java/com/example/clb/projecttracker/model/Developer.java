@@ -31,7 +31,7 @@ public class Developer {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Size(max = 255, message = "Skills description must be less than 255 characters")
+    @Size(max = 255, message = "Skills description must  be less than 255 characters")
     private String skills; // e.g., "Java, Spring Boot, SQL"
 
     // One Developer can be assigned to Many Tasks
