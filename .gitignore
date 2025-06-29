@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Files ###
+.env
+
+# Test Configuration Files
+src/test/resources/application.properties
+src/test/resources/application-test.properties
+
+
+
+docker-compose.yml

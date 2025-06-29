@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: project-tracker
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-project_tracker_db}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD:-728728}
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/${MONGO_INITDB_DATABASE:-project_tracker_audit_db}
+      - SPRING_MAIL_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SPRING_MAIL_PORT=${SMTP_PORT:-587}
+      - SPRING_MAIL_USERNAME=${SMTP_USERNAME:-your-email@gmail.com}
+      - SPRING_MAIL_PASSWORD=${SMTP_PASSWORD:-your-app-password}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
+      - NOTIFICATION_EMAIL_FROM=${NOTIFICATION_EMAIL_FROM:-noreply@example.com}
+      - NOTIFICATION_EMAIL_SUBJECT_PREFIX=[ProjectTracker]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - project-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-project_tracker_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-728728}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - project-network
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=project_tracker_audit_db
+    volumes:
+      - mongodb-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - project-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${SMTP_USERNAME:-buntulevycaleb@gmail.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-728728}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - project-network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD:-admin}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - project-network
+
+networks:
+  project-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  mongodb-data:
