@@ -146,7 +146,7 @@ public class WebSecurityConfig {
                     "/webjars/**",
                     "/swagger-config.yaml",
                     "/v3/api-docs/swagger-config",
-                    "/actuator/health",
+                    "/actuator/**", // Allow all actuator endpoints for monitoring
                     "/api/auth/**",
                     "/auth/**", // Allow access to the Google login initiation URL
                     "/api/test/public"
@@ -167,6 +167,8 @@ public class WebSecurityConfig {
             "http://localhost:3000",  // React dev server
             "http://localhost:8080",  // Default port
             "http://localhost:8081",  // Alternative port
+            "http://localhost:9090",  // Prometheus
+            "http://localhost:3000",  // Grafana
             "https://editor.swagger.io"  // Swagger Editor
         ));
         configuration.setAllowedMethods(Arrays.asList(

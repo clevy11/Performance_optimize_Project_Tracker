@@ -2,7 +2,7 @@
 
 ## Overview
 
-Project Tracker is a comprehensive Spring Boot application designed for **BuildMaster** to efficiently manage projects, tasks, and developers. It provides a robust backend system with RESTful APIs for all core functionalities, along with advanced query capabilities and audit logging.
+Project Tracker is a comprehensive Spring Boot application designed for **BuildMaster** to efficiently manage projects, tasks, and developers. It provides a robust backend system with RESTful APIs for all core functionalities, along with advanced query capabilities, audit logging, and high-performance optimizations.
 
 ## Key Features
 
@@ -10,8 +10,10 @@ Project Tracker is a comprehensive Spring Boot application designed for **BuildM
 *   **Task Assignment**: Assign and unassign tasks to developers.
 *   **Pagination & Sorting**: Efficiently browse through lists of projects, developers, and tasks with support for pagination and sorting by various attributes.
 *   **Transactional Operations**: Ensures data integrity using Spring's transaction management.
-*   **Caching**: Improves performance for frequently accessed data using Spring Cache.
-*   **Audit Logging**: All C/U/D operations on major entities (Projects, Tasks, Developers) are logged to MongoDB for auditing purposes. An endpoint (`/logs`) can be implemented to view these logs.
+*   **High-Performance Caching**: Improves performance with Caffeine cache for frequently accessed data, with TTL and size-based eviction.
+*   **Lightweight DTOs**: Optimized data transfer with minimal payload size for better performance.
+*   **Metrics & Monitoring**: Comprehensive metrics collection with Spring Boot Actuator and Prometheus integration.
+*   **Audit Logging**: All C/U/D operations on major entities (Projects, Tasks, Developers) are logged to MongoDB for auditing purposes.
 *   **Advanced Queries & Endpoints**:
     *   Retrieve overdue tasks.
     *   Get the top N developers based on the number of completed tasks.
@@ -19,6 +21,7 @@ Project Tracker is a comprehensive Spring Boot application designed for **BuildM
     *   Aggregate task counts by their status (overall and per project).
 *   **API Documentation**: Integrated Swagger UI for interactive API documentation and testing.
 *   **Email Notifications**: Automated email alerts for overdue tasks, with configurable SMTP settings. Notifications are sent daily at 8 AM and can also be triggered manually via API.
+*   **Performance Testing**: JMeter test plans for load testing and performance validation.
 
 ## Technologies Used
 
@@ -29,12 +32,20 @@ Project Tracker is a comprehensive Spring Boot application designed for **BuildM
     *   Spring Data MongoDB (for audit logs)
     *   MongoDB
 *   **API & Web**: Spring Web (RESTful APIs)
-*   **Caching**: Spring Cache (default ConcurrentMapCacheManager, configurable for others like Caffeine)
+*   **Performance Optimization**:
+    *   Caffeine Cache with TTL and metrics
+    *   MapStruct for efficient object mapping
+    *   Lightweight DTOs for API responses
+    *   JVM tuning parameters
+*   **Monitoring & Metrics**:
+    *   Spring Boot Actuator
+    *   Micrometer with Prometheus
+    *   Grafana dashboards
 *   **Utilities**: Lombok
 *   **Build Tool**: Apache Maven
 *   **API Documentation**: SpringDoc OpenAPI (Swagger UI)
 *   **Development Tools**: Spring Boot DevTools
-
+*   **Performance Testing**: Apache JMeter
 
 ## Prerequisites
 
@@ -44,6 +55,7 @@ Before you begin, ensure you have met the following requirements:
 *   Apache Maven 3.6.x or later
 *   PostgreSQL server installed and running
 *   MongoDB server installed and running
+*   Docker and Docker Compose (for running with Prometheus and Grafana)
 
 ## Setup and Installation
 
@@ -73,9 +85,79 @@ Before you begin, ensure you have met the following requirements:
 2.  **From your IDE**:
     Locate the `ProjectTrackerApplication.java` class and run it as a Java application.
 
+3.  **Using Docker Compose** (with Prometheus and Grafana):
+    ```bash
+    docker-compose up
+    ```
+
 Once started, the application will be accessible at `http://localhost:8080`.
 
+## Performance Optimization
+
+The application implements several performance optimizations:
+
+### 1. Caching Strategy
+- **Caffeine Cache**: High-performance, in-memory caching with TTL and size limits
+- **Cache Configuration**: See `CacheConfig.java` for detailed cache settings
+- **Cache Metrics**: Real-time cache statistics available via Actuator
+
+### 2. API Response Optimization
+- **Lightweight DTOs**: Reduced payload sizes with optimized data transfer objects:
+  - `ProjectSummaryDto`: Slim version of Project for list views
+  - `TaskSummaryDto`: Minimal task information for better performance
+- **Efficient Object Mapping**: MapStruct for high-performance bean mappings
+
+### 3. Monitoring & Metrics
+- **Spring Boot Actuator**: Comprehensive metrics and monitoring endpoints:
+  - `/actuator/health`: Application health information
+  - `/actuator/metrics`: Detailed metrics on application performance
+  - `/actuator/prometheus`: Metrics in Prometheus format
+  - `/actuator/caches`: Cache statistics
+- **Custom Metrics**: Cache hit/miss ratios, response times for key operations
+
+### 4. JVM Tuning
+- **Memory Settings**: Optimized heap size configuration
+- **GC Options**: Improved garbage collection settings in Dockerfile
+- **Thread Management**: Proper connection pooling and thread configuration
+
+## Performance Testing
+
+JMeter test plans are provided in the `jmeter` directory for load testing:
+
+1. **Run JMeter tests**:
+   ```bash
+   jmeter -n -t jmeter/project-tracker-test-plan.jmx -l results.jtl
+   ```
+
+2. **View results**:
+   ```bash
+   jmeter -g results.jtl -o report
+   ```
+
+## Monitoring with Prometheus and Grafana
+
+1. **Start the monitoring stack**:
+   ```bash
+   docker-compose up
+   ```
+
+2. **Access monitoring tools**:
+   - Prometheus: http://localhost:9090
+   - Grafana: http://localhost:3000 (default login: admin/admin)
+
+3. **Predefined Dashboards**: Import from `grafana/provisioning/dashboards/`
+
 ## API Endpoints & Documentation
+
+### Performance-related Endpoints
+
+- `GET /actuator/metrics` - View all available metrics
+- `GET /actuator/metrics/{metric.name}` - View specific metric details
+- `GET /actuator/prometheus` - Metrics in Prometheus format
+- `GET /actuator/caches` - Cache statistics
+- `GET /actuator/health` - Application health status
+- `GET /api/projects/summary` - Lightweight project listings
+- `GET /api/tasks/summary` - Lightweight task listings
 
 ### Notification Endpoints
 
@@ -92,8 +174,6 @@ All API endpoints are documented using Swagger/OpenAPI.
 
 ![img_2.png](img_2.png)
 
-
-
 ## Sequence diagram:
 ![img_3.png](img_3.png)
 
@@ -101,15 +181,9 @@ All API endpoints are documented using Swagger/OpenAPI.
 
 ![img_1.png](img_1.png)
 
-## Future Enhancements / To-Do
+## Performance Optimization Architecture
 
-*   Introduce REST API versioning strategy.
-*   Enhance caching mechanisms (e.g., configure Caffeine with Time-To-Live settings).
-*   Develop comprehensive unit and integration tests for all services and controllers.
-*   Implement security features (e.g., Spring Security for authentication and authorization).
-*   Add email templates and support for HTML emails.
-*   Implement notification preferences for developers.
-*   Add email delivery status tracking and retry mechanisms.
+![img.png](img.png)
 
 ## To create a Docker container for MongoDB and create a database:
 ```bash

@@ -22,10 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Custom authentication entry point that handles unauthorized requests and provides
- * detailed error responses in JSON format.
- */
+
 
 @Component
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
